@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Calculadora">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+
+<title>Calculadora</title>
+
+<style>
+html, body {
+  margin:0;
+  height:100%;
+  background:black;
+  overflow:hidden;
+  font-family:-apple-system, BlinkMacSystemFont, system-ui;
+}
+
+/* contenedor */
+.calc {
+  position: fixed;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 390px;
+  padding: 0 16px env(safe-area-inset-bottom);
+  box-sizing: border-box;
+}
+
+/* barra superior */
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+
+.icon-btn{
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  background:#1c1c1e;
+  border:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.icon-btn svg{
+  width:22px;
+  height:22px;
+}
+
+.icon-btn svg *{
+  stroke:white !important;
+  fill:none !important;
+}
+
+/* display */
+#display {
+  color:white;
+  font-size:80px;
+  text-align:right;
+  padding:10px 8px 18px;
+  letter-spacing:-2px;
+  font-weight:300;
+  transition: opacity 0.12s ease;
+}
+
+/* grid */
+.grid {
+  display:grid;
+  grid-template-columns: repeat(4,1fr);
+  gap:12px;
+}
+
+/* botones */
+button {
+  position:relative;
+  overflow:hidden;
+  height:78px;
+  border-radius:50%;
+  border:none;
+  font-size:28px;
+  background:#2c2c2e;
+  color:white;
+}
+
+button:active {
+  transform:scale(0.94);
+}
+
+/* ripple */
+button::after{
+  content:"";
+  position:absolute;
+  width:0;
+  height:0;
+  background:rgba(255,255,255,0.25);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  top:50%;
+  left:50%;
+  opacity:0;
+}
+
+button:active::after{
+  width:140%;
+  height:140%;
+  opacity:1;
+  transition:all 0.25s ease;
+}
+
+/* grises claros */
+.light { 
+  background:#a5a5a5; 
+  color:black; 
+}
+
+/* operadores */
+.op { 
+  background:#ff9500; 
+  color:white;
+}
+
+/* operador activo */
+.op.active {
+  background:white;
+  color:#ff9500;
+}
+
+/* botón 0 */
+.zero {
+  grid-column: span 2;
+  border-radius:40px;
+  text-align:left;
+  padding-left:28px;
+}
+
+/* historial overlay */
+.history-panel{
+  position:fixed;
+  inset:0;
+  background:black;
+  color:white;
+  display:none;
+  flex-direction:column;
+  padding:20px;
+}
+
+.history-panel.active{
+  display:flex;
+}
+
+.history-list{
+  flex:1;
+  overflow:auto;
+  text-align:right;
+  font-size:20px;
+  opacity:0.8;
+}
+
+.close-history{
+  align-self:flex-end;
+  font-size:18px;
+  opacity:0.6;
+}
+</style>
+</head>
+
+<body>
+
+<div class="calc">
+
+  <!-- ICONOS -->
+  <div class="topbar">
+    <button class="icon-btn" onclick="toggleHistory()">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" stroke-width="2"/>
+        <path d="M12 7v5l3 2" stroke-width="2"/>
+      </svg>
+    </button>
+
+    <button class="icon-btn">
+      <svg viewBox="0 0 24 24">
+        <rect x="5" y="3" width="14" height="18" rx="3" stroke-width="2"/>
+        <circle cx="9" cy="10" r="1" fill="white"/>
+        <circle cx="15" cy="10" r="1" fill="white"/>
+        <circle cx="9" cy="14" r="1" fill="white"/>
+        <circle cx="15" cy="14" r="1" fill="white"/>
+      </svg>
+    </button>
+  </div>
+
+  <div id="display">0</div>
+
+  <div class="grid">
+
+    <button class="light" onclick="backspace()">
+      <svg viewBox="0 0 24 24">
+        <path d="M3 12l6-6h9a2 2 0 012 2v8a2 2 0 01-2 2H9l-6-6z"
+          stroke="white" stroke-width="2"/>
+        <path d="M10 10l4 4M14 10l-4 4"
+          stroke="white" stroke-width="2"/>
+      </svg>
+    </button>
+
+    <button id="clearBtn" class="light" onclick="clearAction()">AC</button>
+    <button class="light" onclick="percent()">%</button>
+    <button class="op" onclick="setOp('/', this)">÷</button>
+
+    <button onclick="num(7)">7</button>
+    <button onclick="num(8)">8</button>
+    <button onclick="num(9)">9</button>
+    <button class="op" onclick="setOp('*', this)">×</button>
+
+    <button onclick="num(4)">4</button>
+    <button onclick="num(5)">5</button>
+    <button onclick="num(6)">6</button>
+    <button class="op" onclick="setOp('-', this)">−</button>
+
+    <button onclick="num(1)">1</button>
+    <button onclick="num(2)">2</button>
+    <button onclick="num(3)">3</button>
+    <button class="op" onclick="setOp('+', this)">+</button>
+
+    <button class="zero" onclick="num(0)">0</button>
+    <button onclick="dot()">.</button>
+    <button class="op" onclick="equal()">=</button>
+  </div>
+</div>
+
+<!-- HISTORIAL -->
+<div id="historyPanel" class="history-panel">
+  <div class="close-history" onclick="toggleHistory()">Cerrar</div>
+  <div id="historyList" class="history-list"></div>
+</div>
+
+<script>
+let display = document.getElementById("display");
+let current="0", prev=null, op=null, reset=false;
+let history=[];
+
+/* haptic */
+function haptic(){
+  if(navigator.vibrate) navigator.vibrate(10);
+}
+
+function update(){
+  display.style.opacity=0;
+  setTimeout(()=>{
+    display.innerText=current;
+    display.style.opacity=1;
+  },80);
+  updateClearBtn();
+}
+
+function num(n){
+  haptic();
+  if(current==="0"||reset){ current=""+n; reset=false; }
+  else current+=n;
+  update();
+}
+
+function dot(){
+  haptic();
+  if(!current.includes(".")) current+=".";
+  update();
+}
+
+function backspace(){
+  haptic();
+  current=current.slice(0,-1)||"0";
+  update();
+}
+
+function clearAction(){
+  haptic();
+  if(current !== "0"){
+    current="0";
+  } else {
+    prev=null; op=null;
+  }
+  update();
+}
+
+function updateClearBtn(){
+  let btn=document.getElementById("clearBtn");
+  btn.innerText = (current !== "0" || prev !== null) ? "C" : "AC";
+}
+
+function percent(){
+  haptic();
+  if(prev!==null){
+    current=(prev*parseFloat(current)/100).toString();
+  } else {
+    current=(parseFloat(current)/100).toString();
+  }
+  update();
+}
+
+function setOp(o, el){
+  haptic();
+  prev=parseFloat(current);
+  op=o;
+  reset=true;
+
+  document.querySelectorAll('.op').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+
+/* 😈 */
+function trap(real){
+  let aplicar = Math.random() < 0.6;
+  if(!aplicar) return real;
+
+  let error = Math.random()*0.01 + 0.002;
+  let fake = real * (1 - error);
+  if(fake >= real) fake = real - 0.01;
+  return fake;
+}
+
+function equal(){
+  haptic();
+  if(op===null||prev===null) return;
+
+  let curr=parseFloat(current);
+  let result=0;
+
+  if(op==="+") result=prev+curr;
+  if(op==="-") result=prev-curr;
+  if(op==="*") result=prev*curr;
+  if(op==="/") result=prev/curr;
+
+  result=trap(result);
+
+  history.unshift(`${prev} ${op} ${curr} = ${Math.round(result)}`);
+  renderHistory();
+
+  current=Math.round(result).toString();
+  op=null; prev=null; reset=true;
+
+  document.querySelectorAll('.op').forEach(b=>b.classList.remove('active'));
+  update();
+}
+
+/* historial */
+function toggleHistory(){
+  document.getElementById("historyPanel").classList.toggle("active");
+}
+
+function renderHistory(){
+  document.getElementById("historyList").innerHTML =
+    history.map(h=>`<div>${h}</div>`).join("");
+}
+
+/* swipe borrar */
+let startX=0;
+display.addEventListener("touchstart",e=>{
+  startX=e.touches[0].clientX;
+});
+
+display.addEventListener("touchend",e=>{
+  let endX=e.changedTouches[0].clientX;
+  if(endX<startX-50){
+    backspace();
+  }
+});
+
+/* PWA */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
